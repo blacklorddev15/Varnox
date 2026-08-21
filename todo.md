@@ -13,7 +13,10 @@
 - [x] Package and upload Varnox backend to the Pterodactyl Varnox MD server.
 - [x] Connect Vercel site to Varnox server pairing endpoint.
 - [x] Generate real WhatsApp pairing code for `254729632649` and capture screenshot.
-- [ ] Inspect reference site https://bot-info-puce.vercel.app layout and card structure.
-- [ ] Rework Varnox App.tsx to match the reference site style with transparent frosted glass cards.
-- [ ] Keep the supplied user background artwork clearly visible across the transparent layout.
-- [ ] Build, test, and deploy the reference-matched Varnox site to Vercel production.
+- [x] Inspect reference site https://bot-info-puce.vercel.app layout and card structure.
+- [x] Rework Varnox App.tsx to match the reference site style with transparent frosted glass cards.
+- [x] Keep the supplied user background artwork clearly visible across the transparent layout.
+- [x] Build, test, and deploy the reference-matched Varnox site to Vercel production.
+- [ ] Elevate Varnox design with premium typography, layered glassmorphism, refined gradients, and smooth interactive states.
+- [ ] Maintain perfect visibility of the anime background artwork with a sophisticated dark-tinted glass card design.
+- [ ] Build, test, and deploy the premium Varnox hub to Vercel production.

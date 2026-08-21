@@ -5,26 +5,72 @@
     --font-heading: 'Cinzel', serif;
     --font-sans: 'Rajdhani', sans-serif;
   }
+
+  html {
+    background: #07090e;
+  }
+
   body {
     font-family: var(--font-sans);
+    background: #07090e;
   }
+
   h1, h2, h3, h4, .font-heading {
     font-family: var(--font-heading);
   }
 }
 
 .bg-anime-artwork {
-  background-image: linear-gradient(to bottom, rgba(2,6,23,0.18), rgba(3,7,18,0.38), rgba(2,2,4,0.68)), url('./assets/varnox-background.png');
+  background-image:
+    linear-gradient(115deg, rgba(1, 7, 16, 0.14), rgba(2, 6, 23, 0.12) 44%, rgba(1, 2, 8, 0.46)),
+    url('./assets/varnox-background.png');
   background-size: cover;
   background-position: center 22%;
   background-attachment: fixed;
 }
 
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.18; }
+.premium-grid {
+  background-image:
+    linear-gradient(rgba(125, 211, 252, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 211, 252, 0.035) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.86), transparent 82%);
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
+.premium-card {
+  background: linear-gradient(145deg, rgba(8, 15, 29, 0.66), rgba(2, 6, 16, 0.48));
+  border: 1px solid rgba(186, 230, 253, 0.18);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.09);
+  backdrop-filter: blur(14px);
+}
+
+.premium-card:hover {
+  border-color: rgba(103, 232, 249, 0.42);
+}
+
+.hairline {
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.78), transparent);
+}
+
+@keyframes premiumPulse {
+  0%, 100% { opacity: 0.42; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-premium-pulse {
+  animation: premiumPulse 2.6s ease-in-out infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 380ms ease-out both;
+}
+
+::selection {
+  color: #02111a;
+  background: #67e8f9;
 }
