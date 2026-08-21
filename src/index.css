@@ -14,15 +14,15 @@
 }
 
 .bg-anime-artwork {
-  background-image: linear-gradient(to bottom, rgba(2,6,23,0.65), rgba(3,7,18,0.88), rgba(2,2,4,0.96)), url('./assets/varnox-background.png');
+  background-image: linear-gradient(to bottom, rgba(2,6,23,0.18), rgba(3,7,18,0.38), rgba(2,2,4,0.68)), url('./assets/varnox-background.png');
   background-size: cover;
-  background-position: center;
+  background-position: center 22%;
   background-attachment: fixed;
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.18; }
 }
 
 .animate-pulse-glow {

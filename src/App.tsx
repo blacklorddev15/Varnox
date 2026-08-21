@@ -66,7 +66,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-anime-artwork text-white relative flex flex-col justify-between overflow-x-hidden font-sans">
       {/* Ambient background cyan glow */}
-      <div className="absolute inset-0 bg-cyan-950/25 pointer-events-none animate-pulse-glow z-0"></div>
+      <div className="absolute inset-0 bg-cyan-400/5 pointer-events-none animate-pulse-glow z-0"></div>
 
       {/* Top Header */}
       <header className="relative z-10 border-b border-cyan-500/30 bg-black/60 backdrop-blur-md px-6 py-4 flex items-center justify-between">
