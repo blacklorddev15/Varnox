@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Shield, Terminal, Zap, ChevronRight, Sparkles, Cpu, Lock, Smartphone, Check, Copy, RefreshCw, Radio, Server } from 'lucide-react';
+import { Shield, Terminal, Zap, ChevronRight, Sparkles, Cpu, Lock, Smartphone, Check, Copy, RefreshCw, Radio, Server, ExternalLink } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'pairing' | 'modules'>('pairing');
+  const [activeTab, setActiveTab] = useState<'pairing' | 'overview' | 'modules'>('pairing');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const pairingBridgeUrl = (import.meta.env.VITE_VARNOX_PAIRING_URL || '').replace(/\/$/, '');
+  const pairingBridgeUrl = (import.meta.env.VITE_VARNOX_PAIRING_URL || '/api').replace(/\/$/, '');
   const [isLoading, setIsLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -22,7 +22,6 @@ export default function App() {
     setPairingCode(null);
 
     try {
-      // Clean phone number
       const cleaned = phoneNumber.replace(/[^0-9]/g, '');
       
       if (!pairingBridgeUrl) {
@@ -30,7 +29,7 @@ export default function App() {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const response = await fetch(`${pairingBridgeUrl}/pair?phone=${cleaned}`, {
         method: 'GET',
         headers: { Accept: 'application/json' },
@@ -40,7 +39,7 @@ export default function App() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.message || 'The pairing bridge rejected the request.');
+        throw new Error(data.message || data.error || 'The pairing bridge rejected the request.');
       }
 
       const code = data.code || data.pairingCode || data.pairCode;
@@ -65,167 +64,143 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-anime-artwork text-white relative flex flex-col justify-between overflow-x-hidden font-sans">
-      {/* Ambient background cyan glow */}
-      <div className="absolute inset-0 bg-cyan-400/5 pointer-events-none animate-pulse-glow z-0"></div>
+      {/* Very light transparent overlay to ensure the background artwork is fully visible */}
+      <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] pointer-events-none z-0"></div>
 
       {/* Top Header */}
-      <header className="relative z-10 border-b border-cyan-500/30 bg-black/60 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+      <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-cyan-400/60 flex items-center justify-center font-heading font-extrabold text-cyan-400 text-2xl shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-            V
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center font-heading font-extrabold text-cyan-300 text-xl shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+            ⬡
           </div>
           <div>
-            <h1 className="text-xl font-heading font-black tracking-widest text-cyan-400 flex items-center gap-2">
-              VARNOX <span className="text-xs px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 font-mono text-cyan-300">XMD</span>
+            <h1 className="text-lg font-heading font-black tracking-widest text-cyan-300 flex items-center gap-2">
+              BOT HUB <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 font-mono text-cyan-300">VARNOX</span>
             </h1>
-            <p className="text-xs text-zinc-400 font-mono tracking-wider">NEURAL LINK & PAIRING GATEWAY</p>
+            <p className="text-[11px] text-zinc-300 font-mono tracking-wider">CENTRALIZED NEURAL LINK</p>
           </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 font-mono text-sm tracking-wider">
+        <nav className="hidden md:flex items-center gap-6 font-mono text-xs tracking-wider">
           <button 
             onClick={() => setActiveTab('pairing')} 
-            className={`transition-all hover:text-cyan-400 ${activeTab === 'pairing' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-1' : 'text-zinc-300'}`}
+            className={`transition-all hover:text-cyan-300 ${activeTab === 'pairing' ? 'text-cyan-300 border-b border-cyan-300 pb-0.5' : 'text-zinc-300'}`}
           >
             // PAIRING PORTAL
           </button>
           <button 
             onClick={() => setActiveTab('overview')} 
-            className={`transition-all hover:text-cyan-400 ${activeTab === 'overview' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-1' : 'text-zinc-300'}`}
+            className={`transition-all hover:text-cyan-300 ${activeTab === 'overview' ? 'text-cyan-300 border-b border-cyan-300 pb-0.5' : 'text-zinc-300'}`}
           >
-            // OVERVIEW
+            // HUB STATUS
           </button>
           <button 
             onClick={() => setActiveTab('modules')} 
-            className={`transition-all hover:text-cyan-400 ${activeTab === 'modules' ? 'text-cyan-400 border-b-2 border-cyan-400 pb-1' : 'text-zinc-300'}`}
+            className={`transition-all hover:text-cyan-300 ${activeTab === 'modules' ? 'text-cyan-300 border-b border-cyan-300 pb-0.5' : 'text-zinc-300'}`}
           >
-            // MODULES
+            // ECOSYSTEM
           </button>
         </nav>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-500/40 text-xs font-mono text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-            PORTAL ACTIVE
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-400/40 text-xs font-mono text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            ACTIVE HUB
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 max-w-5xl mx-auto px-6 py-12 flex flex-col justify-center flex-grow w-full items-center">
+      <main className="relative z-10 max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center flex-grow w-full items-center">
         
-        {/* Mobile Tab switcher for small screens */}
-        <div className="flex md:hidden w-full gap-2 mb-6 font-mono text-xs">
+        {/* Mobile Tab bar */}
+        <div className="flex md:hidden w-full gap-2 mb-6 font-mono text-xs justify-center">
           <button 
-            onClick={() => setActiveTab('pairing')}
-            className={`flex-1 py-2.5 rounded-lg border text-center transition-all ${activeTab === 'pairing' ? 'bg-cyan-500 text-black font-bold border-cyan-400' : 'bg-black/60 text-zinc-300 border-cyan-500/30'}`}
+            onClick={() => setActiveTab('pairing')} 
+            className={`px-3 py-1.5 rounded border ${activeTab === 'pairing' ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200' : 'bg-black/55 border-white/20 text-zinc-300'}`}
           >
-            PAIRING
+            Pairing
           </button>
           <button 
-            onClick={() => setActiveTab('overview')}
-            className={`flex-1 py-2.5 rounded-lg border text-center transition-all ${activeTab === 'overview' ? 'bg-cyan-500 text-black font-bold border-cyan-400' : 'bg-black/60 text-zinc-300 border-cyan-500/30'}`}
+            onClick={() => setActiveTab('overview')} 
+            className={`px-3 py-1.5 rounded border ${activeTab === 'overview' ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200' : 'bg-black/55 border-white/20 text-zinc-300'}`}
           >
-            OVERVIEW
+            Status
           </button>
           <button 
-            onClick={() => setActiveTab('modules')}
-            className={`flex-1 py-2.5 rounded-lg border text-center transition-all ${activeTab === 'modules' ? 'bg-cyan-500 text-black font-bold border-cyan-400' : 'bg-black/60 text-zinc-300 border-cyan-500/30'}`}
+            onClick={() => setActiveTab('modules')} 
+            className={`px-3 py-1.5 rounded border ${activeTab === 'modules' ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200' : 'bg-black/55 border-white/20 text-zinc-300'}`}
           >
-            MODULES
+            Ecosystem
           </button>
         </div>
 
         {activeTab === 'pairing' && (
-          <div className="w-full max-w-xl bg-black/85 backdrop-blur-xl p-8 rounded-3xl border border-cyan-500/40 shadow-[0_0_50px_rgba(0,0,0,0.9),0_0_20px_rgba(6,182,212,0.2)] space-y-6">
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-mono text-xs">
-                <Radio size={14} className="animate-pulse" />
-                WHATSAPP PAIRING BRIDGE
+          <div className="w-full max-w-lg bg-black/45 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-[0_8px_32px_rgba(0,0_0,0.5)]">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-mono mb-3">
+                <Radio className="w-3.5 h-3.5 animate-pulse" /> WHATSAPP PAIRING GATEWAY
               </div>
-              <h2 className="text-3xl font-heading font-black tracking-wider text-white">
-                CONNECT <span className="text-cyan-400">VARNOX XMD</span>
-              </h2>
-              <p className="text-sm text-zinc-400 font-sans">
-                Enter your WhatsApp number with country code to generate your secure pairing code instantly.
+              <h2 className="text-2xl font-heading font-bold text-white tracking-wide">CONNECT VARNOX XMD</h2>
+              <p className="text-sm text-zinc-300 mt-2 font-sans">
+                Everything is now combined in one unified hub. Enter your WhatsApp number to generate your secure pairing code instantly.
               </p>
             </div>
 
-            <form onSubmit={handleGeneratePairing} className="space-y-4">
+            <form onSubmit={handleGeneratePairing} className="space-y-6">
               <div>
-                <label className="block text-xs font-mono text-cyan-400 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-mono text-cyan-300 mb-2 uppercase tracking-wider">
                   WhatsApp Number (with country code)
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 font-mono">
-                    +
-                  </div>
-                  <input 
-                    type="text" 
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 font-mono">+</span>
+                  <input
+                    type="text"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="254700000000" 
-                    className="w-full bg-zinc-950/90 border border-cyan-500/30 focus:border-cyan-400 rounded-xl pl-8 pr-4 py-3.5 text-base font-mono text-white placeholder-zinc-600 focus:outline-none shadow-inner transition-all"
+                    placeholder="254700000000"
+                    className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-3.5 pl-8 text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all text-sm"
                   />
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Server size={15} className={pairingBridgeUrl ? 'text-cyan-400' : 'text-amber-400'} />
-                    <div>
-                      <p className="text-xs font-mono text-zinc-300">PAIRING BRIDGE</p>
-                      <p className="mt-0.5 text-[10px] font-mono text-zinc-500">
-                        {pairingBridgeUrl ? 'Backend endpoint configured' : 'Waiting for Varnox backend endpoint'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-mono ${pairingBridgeUrl ? 'text-cyan-400' : 'text-amber-400'}`}>
-                    {pairingBridgeUrl ? 'READY' : 'PENDING'}
-                  </span>
-                </div>
-              </div>
-
               {errorMessage && (
-                <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs font-mono">
+                <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs font-mono">
                   {errorMessage}
                 </div>
               )}
 
-              <button 
+              <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-mono font-black text-base rounded-xl transition-all shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-heading font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm tracking-wider uppercase"
               >
                 {isLoading ? (
                   <>
-                    <RefreshCw className="animate-spin" size={18} />
-                    GENERATING SECURE CODE...
+                    <RefreshCw className="w-4 h-4 animate-spin" /> GENERATING SECURE CODE...
                   </>
                 ) : (
                   <>
-                    <Cpu size={18} />
-                    GENERATE PAIRING CODE
+                    <Zap className="w-4 h-4" /> GENERATE PAIRING CODE
                   </>
                 )}
               </button>
             </form>
 
             {pairingCode && (
-              <div className="mt-6 p-5 rounded-2xl bg-cyan-950/40 border border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center space-y-3 animate-fadeIn">
-                <p className="text-xs font-mono text-cyan-300 uppercase tracking-widest">Your Pairing Code</p>
-                <div className="text-3xl md:text-4xl font-mono font-black tracking-widest text-white bg-black/60 py-3 rounded-xl border border-cyan-400/40 select-all">
+              <div className="mt-8 p-5 rounded-xl bg-cyan-950/50 border border-cyan-400/40 text-center animate-fadeIn">
+                <p className="text-xs font-mono text-cyan-300 mb-2 uppercase tracking-widest">Your Secure Pairing Code</p>
+                <div className="text-3xl font-mono font-black text-white tracking-widest bg-black/50 py-3 rounded-lg border border-cyan-500/30 select-all mb-4">
                   {pairingCode}
                 </div>
-                <button 
+                <button
                   onClick={handleCopyCode}
-                  className="w-full py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 font-mono text-xs rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
                 >
-                  {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-                  {copied ? 'COPIED TO CLIPBOARD!' : 'COPY CODE TO LINK'}
+                  {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Code Copied to Clipboard!' : 'Copy Code to Link'}
                 </button>
-                <p className="text-[11px] text-zinc-400 font-sans">
+                <p className="text-[11px] text-zinc-300 mt-3 font-sans">
                   Open WhatsApp on your phone &gt; Linked Devices &gt; Link with phone number instead &gt; Enter this live code.
                 </p>
               </div>
@@ -234,66 +209,79 @@ export default function App() {
         )}
 
         {activeTab === 'overview' && (
-          <div className="max-w-2xl space-y-6 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-mono text-xs">
-              <Sparkles size={14} />
-              CYBERNETIC ANIME ECOSYSTEM
+          <div className="w-full max-w-lg bg-black/45 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-[0_8px_32px_rgba(0,0_0,0.5)] space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-heading font-bold text-white">HUB STATUS & MIGRATION</h2>
+              <p className="text-xs text-zinc-300 font-mono mt-1">ALL BOTS COMBINED INTO ONE UNIFIED VERSION</p>
             </div>
-            
-            <h2 className="text-4xl md:text-6xl font-heading font-black tracking-wider leading-tight text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
-              BEYOND LIMITS. <br />
-              <span className="text-cyan-400">ABSOLUTE CONTROL.</span>
-            </h2>
 
-            <p className="text-base text-zinc-300 leading-relaxed font-sans max-w-xl bg-black/60 backdrop-blur-md p-6 rounded-2xl border border-cyan-500/20 shadow-xl">
-              Varnox XMD is engineered for elite performance, lightning-fast response times, and seamless multi-device bot synchronization across Pterodactyl server nodes.
-            </p>
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-zinc-400">Hub Status:</span>
+                <span className="text-emerald-400 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ONLINE</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-zinc-400">Merged Version:</span>
+                <span className="text-cyan-300">Varnox XMD Universal</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-zinc-400">Hosting Engine:</span>
+                <span className="text-cyan-300">Pterodactyl &amp; Vercel</span>
+              </div>
+            </div>
 
-            <div className="flex flex-wrap gap-4 pt-2 justify-center md:justify-start">
-              <button 
-                onClick={() => setActiveTab('pairing')}
-                className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-mono text-sm font-bold rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all flex items-center gap-2 cursor-pointer"
-              >
-                PAIR DEVICE NOW <ChevronRight size={16} />
-              </button>
-              <button 
-                onClick={() => setActiveTab('modules')}
-                className="px-6 py-3 bg-black/60 hover:bg-black/80 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 font-mono text-sm rounded-xl backdrop-blur-sm transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Server size={14} /> VIEW MODULES
-              </button>
+            <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30">
+              <p className="text-xs text-zinc-200 leading-relaxed font-sans">
+                Everything is now in one place. Both bots have been successfully combined into a single, merged platform. Head over to the pairing portal to connect your number and access all features instantly.
+              </p>
             </div>
           </div>
         )}
 
         {activeTab === 'modules' && (
-          <div className="w-full max-w-4xl space-y-6">
-            <h3 className="text-2xl font-heading font-bold tracking-wider text-cyan-400 text-center md:text-left">// CORE ARCHITECTURE MODULES</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 rounded-2xl bg-black/70 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400 transition-all shadow-lg">
-                <Terminal className="text-cyan-400 mb-4" size={28} />
-                <h4 className="font-heading font-bold text-lg mb-2 text-white">PAIRING ENGINE</h4>
-                <p className="text-sm text-zinc-400 font-sans">High-speed WebSocket bridge connecting web portal requests directly to bot backends.</p>
+          <div className="w-full max-w-lg bg-black/45 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-[0_8px_32px_rgba(0,0_0,0.5)] space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-heading font-bold text-white">ECOSYSTEM MODULES</h2>
+              <p className="text-xs text-zinc-300 font-mono mt-1">AVAILABLE CAPABILITIES & COMMAND SUITES</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                <Shield className="w-4 h-4 text-cyan-400" />
+                <span>Group Security</span>
               </div>
-              <div className="p-6 rounded-2xl bg-black/70 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400 transition-all shadow-lg">
-                <Zap className="text-cyan-400 mb-4" size={28} />
-                <h4 className="font-heading font-bold text-lg mb-2 text-white">SYNAPSE AI</h4>
-                <p className="text-sm text-zinc-400 font-sans">Automated heuristic analysis engine powered by high-speed neural pipelines.</p>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                <Terminal className="w-4 h-4 text-cyan-400" />
+                <span>Advanced AI</span>
               </div>
-              <div className="p-6 rounded-2xl bg-black/70 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400 transition-all shadow-lg">
-                <Shield className="text-cyan-400 mb-4" size={28} />
-                <h4 className="font-heading font-bold text-lg mb-2 text-white">SHIELD DEFENSE</h4>
-                <p className="text-sm text-zinc-400 font-sans">Multi-layered security protocols ensuring 24/7 uninterrupted uptime on Pterodactyl.</p>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                <Cpu className="w-4 h-4 text-cyan-400" />
+                <span>Media Download</span>
               </div>
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <span>Sticker Tools</span>
+              </div>
+            </div>
+
+            <div className="text-center pt-2">
+              <button
+                onClick={() => setActiveTab('pairing')}
+                className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-mono text-xs tracking-wider"
+              >
+                <span>// RETURN TO PAIRING PORTAL</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
+
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-cyan-500/20 bg-black/80 backdrop-blur-md px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-zinc-400">
-        <p>© 2026 VARNOX ECOSYSTEM. ALL RIGHTS RESERVED.</p>
-        <p className="mt-2 sm:mt-0 text-cyan-400">DISTINCT CYAN ANIME THEME • READY FOR PRODUCTION</p>
+      <footer className="relative z-10 border-t border-white/10 bg-black/40 backdrop-blur-md px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-zinc-400 gap-2">
+        <p>&copy; 2026 VARNOX ECOSYSTEM. ALL RIGHTS RESERVED.</p>
+        <p className="text-cyan-300">TRANSPARENT ANIME HUB • FULLY COMBINED</p>
       </footer>
     </div>
   );
