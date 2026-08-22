@@ -4,11 +4,11 @@ const startTime = Date.now();
 // Runtime admin state
 let currentConfig = {
   panelDomain: process.env.PANEL_DOMAIN || 'https://pterodactyl.mzazi.shop',
-  panelApiKey: process.env.PANEL_APIKEY || 'ptla_ldjQFjVDpdHA7De41JbJHT6TdRlEliE0SbvuFqjlrCo',
+  panelApiKey: process.env.PANEL_APIKEY || '',
   serverIp: process.env.SERVER_IP || '139.59.111.210',
   serverPort: process.env.SERVER_PORT || '25572',
   premiumMode: process.env.PREMIUM_MODE === 'true',
-  adminPassword: process.env.ADMIN_PASSWORD || 'varnox10',
+  adminPassword: String(process.env.ADMIN_PASSWORD || process.env.API_SECRET || '').trim(),
 };
 
 const generatedKeys = new Set(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);

@@ -156,11 +156,11 @@ export default function App() {
           if (typeof data.config.premiumMode === 'boolean') setIsPremiumMode(data.config.premiumMode);
         }
       } else {
-        setAdminLoginError(data.error || 'Incorrect admin password (try varnox10)');
+        setAdminLoginError(data.error || 'Incorrect admin password.');
       }
     } catch {
       setBridgeStatus('offline');
-      setAdminLoginError('Varnox bridge is offline. Start the Pterodactyl backend before signing in.');
+      setAdminLoginError('Website admin authentication is unavailable. The bot backend may be offline, but that does not block website login.');
     }
   };
 
@@ -434,7 +434,7 @@ export default function App() {
               <form onSubmit={handleAdminLogin} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-mono text-cyan-300 mb-2 uppercase tracking-wider">
-                    Admin Password (Default: varnox10)
+                    Admin Password
                   </label>
                   <input
                     type="password"
@@ -453,8 +453,11 @@ export default function App() {
                 </button>
               </form>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+                <div className="space-y-6">
+                  <div className={`rounded-2xl border px-4 py-3 text-xs font-mono ${bridgeStatus === 'online' ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200' : 'border-rose-400/30 bg-rose-500/10 text-rose-200'}`}>
+                    {bridgeStatus === 'online' ? 'Titan/Varnox backend online. Backend controls are active.' : 'Backend offline. Website admin is unlocked, but server settings and activation-key actions are unavailable until the bot returns online.'}
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
                   <div>
                     <p className="text-sm font-bold text-white">Mode: {isPremiumMode ? 'Premium (Key Required)' : 'Free (Open Pairing)'}</p>
                     <p className="text-xs text-slate-400">Toggle whether activation keys are required to pair.</p>
@@ -462,7 +465,8 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsPremiumMode(!isPremiumMode)}
-                    className={`px-4 py-2 rounded-xl font-mono text-xs font-bold transition ${isPremiumMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}
+                    disabled={bridgeStatus !== 'online'}
+                    className={`px-4 py-2 rounded-xl font-mono text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${isPremiumMode ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}`}
                   >
                     {isPremiumMode ? 'PREMIUM ON' : 'FREE MODE'}
                   </button>
@@ -509,7 +513,8 @@ export default function App() {
 
                   <button
                     onClick={handleSaveSettings}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs py-3 rounded-xl transition uppercase tracking-wider"
+                    disabled={bridgeStatus !== 'online'}
+                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-40 text-white font-mono text-xs py-3 rounded-xl transition uppercase tracking-wider"
                   >
                     Save Panel Settings
                   </button>
@@ -522,7 +527,8 @@ export default function App() {
                     </h4>
                     <button
                       onClick={handleGenerateKey}
-                      className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 text-xs font-mono hover:bg-cyan-500/30 transition"
+                      disabled={bridgeStatus !== 'online'}
+                      className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 text-xs font-mono hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-40 transition"
                     >
                       + Generate New Key
                     </button>
