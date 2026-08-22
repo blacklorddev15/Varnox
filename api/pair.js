@@ -1,146 +1,190 @@
-let totalPairs = 1428;
+let totalPairs = 0;
 const startTime = Date.now();
 
-// Runtime admin state
-let currentConfig = {
+const currentConfig = {
   panelDomain: process.env.PANEL_DOMAIN || 'https://pterodactyl.mzazi.shop',
-  panelApiKey: process.env.PANEL_APIKEY || '',
   serverIp: process.env.SERVER_IP || '139.59.111.210',
   serverPort: process.env.SERVER_PORT || '25572',
+  serverId: process.env.SERVER_ID || '5574df2c',
+  backendSecret: String(process.env.BACKEND_API_SECRET || process.env.API_SECRET || process.env.PANEL_API_KEY || process.env.PANEL_APIKEY || '').trim(),
   premiumMode: process.env.PREMIUM_MODE === 'true',
-  adminPassword: String(process.env.ADMIN_PASSWORD || process.env.API_SECRET || '').trim(),
+  adminPassword: String(process.env.ADMIN_PASSWORD || process.env.WEBSITE_ADMIN_PASSWORD || process.env.API_SECRET || '').trim(),
 };
 
 const generatedKeys = new Set(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);
 
 function getBackendUrl() {
-  return (process.env.VARNOX_BACKEND_URL || `http://${currentConfig.serverIp}:${currentConfig.serverPort}`).replace(/\/$/, '');
+  const host = String(currentConfig.serverIp || '').trim();
+  const port = String(currentConfig.serverPort || '').trim();
+  if (/^https?:\/\//i.test(host)) return host.replace(/\/$/, '');
+  return host ? `http://${host}${port ? `:${port}` : ''}` : '';
+}
+
+function maskSecret(value) {
+  const secret = String(value || '');
+  if (!secret) return 'Not configured';
+  if (secret.length <= 4) return '••••';
+  return secret.slice(0, 2) + '•'.repeat(Math.max(4, secret.length - 4)) + secret.slice(-2);
 }
 
 function publicConfig() {
-  const { panelApiKey: _panelApiKey, adminPassword: _adminPassword, ...safe } = currentConfig;
-  return safe;
+  return {
+    panelDomain: currentConfig.panelDomain,
+    serverIp: currentConfig.serverIp,
+    serverPort: currentConfig.serverPort,
+    serverId: currentConfig.serverId,
+    premiumMode: currentConfig.premiumMode,
+    backendSecretConfigured: Boolean(currentConfig.backendSecret),
+    backendSecretMasked: maskSecret(currentConfig.backendSecret),
+  };
+}
+
+function readBody(request) {
+  if (!request.body) return {};
+  if (typeof request.body === 'object') return request.body;
+  try { return JSON.parse(request.body); } catch { return {}; }
+}
+
+function adminAuthorized(request, body) {
+  const supplied = String(request.headers['x-admin-password'] || request.headers['x-api-secret'] || body.password || '').trim();
+  return Boolean(currentConfig.adminPassword && supplied === currentConfig.adminPassword);
+}
+
+async function checkBackend() {
+  const base = String(getBackendUrl() || '').trim();
+  if (!base) return { online: false, statusCode: 0, error: 'Server host/IP is not configured.' };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let lastStatus = 0;
+  try {
+    for (const path of ['/api/status', '/api/health', '']) {
+      try {
+        const upstream = await fetch(`${base}${path}`, {
+          headers: { Accept: 'application/json', ...(currentConfig.backendSecret ? { 'x-api-secret': currentConfig.backendSecret } : {}) },
+          signal: controller.signal,
+        });
+        lastStatus = upstream.status;
+        if (upstream.ok) return { online: true, statusCode: upstream.status };
+      } catch {
+        // Try the next conventional health path before declaring the backend offline.
+      }
+    }
+    return { online: false, statusCode: lastStatus, error: lastStatus ? `Backend returned HTTP ${lastStatus}.` : 'Backend is offline or not reachable.' };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export default async function handler(request, response) {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Password');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Password, x-api-secret');
 
   if (request.method === 'OPTIONS') {
     response.status(204).end();
     return;
   }
 
-  // Handle stats/health requests
   if (request.method === 'GET' && request.query?.stats === '1') {
-    let backendOnline = false;
-    const healthController = new AbortController();
-    const healthTimeout = setTimeout(() => healthController.abort(), 5000);
-    try {
-      const health = await fetch(getBackendUrl(), { headers: { Accept: 'application/json' }, signal: healthController.signal });
-      backendOnline = health.ok;
-    } catch {
-      backendOnline = false;
-    } finally {
-      clearTimeout(healthTimeout);
-    }
-
+    const health = await checkBackend();
     const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
-    const hours = Math.floor(uptimeSeconds / 3600);
-    const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-    const seconds = uptimeSeconds % 60;
-    const uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
-
     response.status(200).json({
-      status: backendOnline ? 'online' : 'offline',
-      uptime: uptimeStr,
+      status: health.online ? 'online' : 'offline',
+      uptime: `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m ${uptimeSeconds % 60}s`,
       pairedCount: totalPairs,
       premiumMode: currentConfig.premiumMode,
       panelDomain: currentConfig.panelDomain,
       serverIp: currentConfig.serverIp,
       serverPort: currentConfig.serverPort,
+      serverId: currentConfig.serverId,
     });
     return;
   }
 
-  // Handle Admin Login / Settings Update
-  if (request.method === 'POST') {
-    const body = request.body || {};
-    const action = body.action;
+  const body = request.method === 'POST' ? readBody(request) : (request.query || {});
+  const action = body.action;
 
-    if (action === 'admin_login') {
-      if (body.password === currentConfig.adminPassword) {
-        response.status(200).json({ success: true, config: publicConfig() });
-      } else {
-        response.status(401).json({ error: 'Invalid admin password.' });
-      }
+  if (request.method === 'POST' && (action === 'admin_login' || action === 'login')) {
+    const pass = String(body.password || '').trim();
+    if (!currentConfig.adminPassword) {
+      response.status(503).json({ error: 'Website admin authentication is not configured.' });
       return;
     }
-
-    if (action === 'update_settings') {
-      const authHeader = request.headers['x-admin-password'] || body.password;
-      if (authHeader !== currentConfig.adminPassword) {
-        response.status(401).json({ error: 'Unauthorized admin access.' });
-        return;
-      }
-
-      if (body.panelDomain !== undefined) currentConfig.panelDomain = String(body.panelDomain);
-      if (body.panelApiKey !== undefined) currentConfig.panelApiKey = String(body.panelApiKey);
-      if (body.serverIp !== undefined) currentConfig.serverIp = String(body.serverIp);
-      if (body.serverPort !== undefined) currentConfig.serverPort = String(body.serverPort);
-      if (typeof body.premiumMode === 'boolean') currentConfig.premiumMode = body.premiumMode;
-
-      response.status(200).json({ success: true, message: 'Panel settings updated successfully!', config: publicConfig() });
+    if (pass !== currentConfig.adminPassword) {
+      response.status(401).json({ error: 'Incorrect admin password.' });
       return;
     }
-
-    if (action === 'generate_key') {
-      const authHeader = request.headers['x-admin-password'] || body.password;
-      if (authHeader !== currentConfig.adminPassword) {
-        response.status(401).json({ error: 'Unauthorized admin access.' });
-        return;
-      }
-
-      const newKey = 'VNX-PRO-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
-      generatedKeys.add(newKey);
-      response.status(200).json({ success: true, key: newKey, keys: Array.from(generatedKeys) });
-      return;
-    }
+    response.status(200).json({ success: true, authenticated: true, config: publicConfig() });
+    return;
   }
 
-  const query = request.method === 'POST' ? (request.body || {}) : request.query;
-  const phone = String(query?.phone || '').replace(/\D/g, '');
-  const key = String(query?.key || query?.activationKey || '').trim();
-
-  if (currentConfig.premiumMode) {
-    if (!key || (!generatedKeys.has(key) && key !== 'VARNOX-PRO-2026')) {
-      response.status(403).json({ error: 'Premium mode is active. A valid activation key generated from the admin panel is required to pair.' });
+  if (request.method === 'POST' && action === 'update_settings') {
+    if (!adminAuthorized(request, body)) {
+      response.status(401).json({ error: 'Unauthorized admin access.' });
       return;
     }
+    if (body.panelDomain !== undefined) currentConfig.panelDomain = String(body.panelDomain).trim();
+    if (body.serverIp !== undefined) currentConfig.serverIp = String(body.serverIp).trim();
+    if (body.serverPort !== undefined) currentConfig.serverPort = String(body.serverPort).trim();
+    if (body.serverId !== undefined) currentConfig.serverId = String(body.serverId).trim();
+    const newSecret = body.backendSecret ?? body.panelApiKey;
+    if (newSecret !== undefined && String(newSecret).trim()) currentConfig.backendSecret = String(newSecret).trim();
+    if (typeof body.premiumMode === 'boolean') currentConfig.premiumMode = body.premiumMode;
+    response.status(200).json({ success: true, message: 'Varnox Pterodactyl settings updated successfully.', config: publicConfig() });
+    return;
   }
 
+  if (request.method === 'POST' && action === 'test_connection') {
+    if (!adminAuthorized(request, body)) {
+      response.status(401).json({ error: 'Unauthorized admin access.' });
+      return;
+    }
+    const health = await checkBackend();
+    response.status(200).json({ success: true, backendOnline: health.online, statusCode: health.statusCode, message: health.message || health.error || (health.online ? 'Backend is reachable.' : 'Backend is offline or not reachable.') });
+    return;
+  }
+
+  if (request.method === 'POST' && action === 'generate_key') {
+    if (!adminAuthorized(request, body)) {
+      response.status(401).json({ error: 'Unauthorized admin access.' });
+      return;
+    }
+    const newKey = 'VNX-PRO-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+    generatedKeys.add(newKey);
+    response.status(200).json({ success: true, key: newKey, keys: Array.from(generatedKeys) });
+    return;
+  }
+
+  const phone = String(body?.phone || '').replace(/\D/g, '');
+  const key = String(body?.key || body?.activationKey || '').trim();
+  if (currentConfig.premiumMode && (!key || (!generatedKeys.has(key) && key !== 'VARNOX-PRO-2026'))) {
+    response.status(403).json({ error: 'Premium mode is active. A valid activation key generated from the admin panel is required to pair.' });
+    return;
+  }
   if (phone.length < 7) {
     response.status(400).json({ error: 'Invalid phone number format.' });
     return;
   }
 
   const backendUrl = getBackendUrl();
-  
+  if (!backendUrl) {
+    response.status(503).json({ error: 'Varnox backend host/IP is not configured.' });
+    return;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
-
   try {
     const upstream = await fetch(`${backendUrl}/pair?phone=${encodeURIComponent(phone)}`, {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...(currentConfig.backendSecret ? { 'x-api-secret': currentConfig.backendSecret } : {}) },
       signal: controller.signal,
     });
-    const body = await upstream.text();
-    totalPairs += 1;
+    const upstreamBody = await upstream.text();
+    if (upstream.ok) totalPairs += 1;
     response.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
-    response.status(upstream.status).send(body);
+    response.status(upstream.status).send(upstreamBody);
   } catch {
-    response.status(502).json({ error: 'Varnox backend is offline. Please start the bot server on your Pterodactyl panel.' });
+    response.status(502).json({ error: 'Varnox backend is offline. Check the Pterodactyl host, allocation port, server ID, and that the backend is running.' });
   } finally {
     clearTimeout(timeout);
   }

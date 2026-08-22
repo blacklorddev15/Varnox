@@ -59,6 +59,10 @@ export default function App() {
   const [panelDomain, setPanelDomain] = useState('https://pterodactyl.mzazi.shop');
   const [serverIp, setServerIp] = useState('139.59.111.210');
   const [serverPort, setServerPort] = useState('25572');
+  const [serverId, setServerId] = useState('');
+  const [backendSecretInput, setBackendSecretInput] = useState('');
+  const [backendSecretMasked, setBackendSecretMasked] = useState('Not configured');
+  const [migrationTestStatus, setMigrationTestStatus] = useState<string | null>(null);
   const [generatedKeysList, setGeneratedKeysList] = useState<string[]>(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);
   const [adminStatusMessage, setAdminStatusMessage] = useState<string | null>(null);
 
@@ -75,6 +79,8 @@ export default function App() {
           if (data.panelDomain) setPanelDomain(data.panelDomain);
           if (data.serverIp) setServerIp(data.serverIp);
           if (data.serverPort) setServerPort(data.serverPort);
+          if (data.serverId) setServerId(data.serverId);
+          if (data.backendSecretMasked) setBackendSecretMasked(data.backendSecretMasked);
         } else {
           setBridgeStatus('offline');
           setUptime('—');
@@ -153,6 +159,8 @@ export default function App() {
           if (data.config.panelDomain) setPanelDomain(data.config.panelDomain);
           if (data.config.serverIp) setServerIp(data.config.serverIp);
           if (data.config.serverPort) setServerPort(data.config.serverPort);
+          if (data.config.serverId) setServerId(data.config.serverId);
+          if (data.config.backendSecretMasked) setBackendSecretMasked(data.config.backendSecretMasked);
           if (typeof data.config.premiumMode === 'boolean') setIsPremiumMode(data.config.premiumMode);
         }
       } else {
@@ -176,18 +184,38 @@ export default function App() {
           panelDomain,
           serverIp,
           serverPort,
+          serverId,
+          ...(backendSecretInput.trim() ? { backendSecret: backendSecretInput.trim() } : {}),
           premiumMode: isPremiumMode,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setAdminStatusMessage('Settings updated successfully! No Vercel changes required.');
+        setBackendSecretInput('');
+        if (data.config?.backendSecretMasked) setBackendSecretMasked(data.config.backendSecretMasked);
+        setAdminStatusMessage('Pterodactyl details saved. No public website code edit is required.');
       } else {
         setAdminStatusMessage(data.error || 'Failed to update settings.');
       }
     } catch {
       setBridgeStatus('offline');
-      setAdminStatusMessage('Varnox bridge is offline. Settings were not saved.');
+      setAdminStatusMessage('Website settings could not be saved. Retry while the website API is available; the bot backend itself may remain offline.');
+    }
+  };
+
+  const handleTestMigrationConnection = async () => {
+    setMigrationTestStatus('Testing backend connection…');
+    try {
+      const res = await fetch(pairingBridgeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        body: JSON.stringify({ action: 'test_connection', password: adminPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Connection test was rejected.');
+      setMigrationTestStatus(data.backendOnline ? 'ONLINE — backend is reachable.' : `OFFLINE — ${data.message || 'backend is not reachable.'}`);
+    } catch (error) {
+      setMigrationTestStatus(error instanceof Error ? error.message : 'Connection test failed.');
     }
   };
 
@@ -493,31 +521,27 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[10px] font-mono text-slate-300 mb-1">SERVER IP / HOST</label>
-                      <input
-                        type="text"
-                        value={serverIp}
-                        onChange={(e) => setServerIp(e.target.value)}
-                        className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
-                      />
+                      <input type="text" value={serverIp} onChange={(e) => setServerIp(e.target.value)} className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-mono text-slate-300 mb-1">ALLOCATION PORT</label>
-                      <input
-                        type="text"
-                        value={serverPort}
-                        onChange={(e) => setServerPort(e.target.value)}
-                        className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
-                      />
+                      <input type="text" value={serverPort} onChange={(e) => setServerPort(e.target.value)} className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={bridgeStatus !== 'online'}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-40 text-white font-mono text-xs py-3 rounded-xl transition uppercase tracking-wider"
-                  >
-                    Save Panel Settings
-                  </button>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-300 mb-1">PTERODACTYL SERVER ID</label>
+                    <input type="text" value={serverId} onChange={(e) => setServerId(e.target.value)} placeholder="Paste the server identifier from Pterodactyl" className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-300 mb-1">BACKEND API SECRET</label>
+                    <input type="password" value={backendSecretInput} onChange={(e) => setBackendSecretInput(e.target.value)} placeholder="Leave blank to keep saved secret" autoComplete="new-password" className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
+                    <p className="mt-1 text-[10px] text-slate-500 font-mono">Saved secret: {backendSecretMasked} (hidden)</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={handleSaveSettings} className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs py-3 rounded-xl transition uppercase tracking-wider">Save Pterodactyl Details</button>
+                    <button onClick={handleTestMigrationConnection} className="w-full bg-cyan-500/15 border border-cyan-400/30 hover:bg-cyan-500/25 text-cyan-200 font-mono text-xs py-3 rounded-xl transition uppercase tracking-wider">Test Connection</button>
+                  </div>
+                  {migrationTestStatus && <p className="text-xs font-mono text-slate-300">{migrationTestStatus}</p>}
                 </div>
 
                 <div className="space-y-3 border-t border-white/10 pt-4">
