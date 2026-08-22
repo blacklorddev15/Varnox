@@ -20,6 +20,9 @@
 - [x] Elevate Varnox design with premium typography, layered glassmorphism, refined gradients, and smooth interactive states.
 - [x] Maintain perfect visibility of the anime background artwork with a sophisticated dark-tinted glass card design.
 - [x] Build, test, and deploy the premium Varnox hub to Vercel production.
-- [ ] Add live uptime tracking and paired-user statistics to the Varnox hub status.
-- [ ] Implement premium mode toggle and activation key validation in the pairing gateway.
-- [ ] Build, test, and deploy the updated Varnox hub to Vercel production.
+- [x] Add live uptime tracking and paired-user statistics to the Varnox hub status.
+- [x] Implement premium mode toggle and activation key validation in the pairing gateway.
+- [x] Build, test, and deploy the updated Varnox hub to Vercel production.
+- [ ] Create a protected admin section in Varnox App.tsx for panel domain, server allocation, and API key management.
+- [ ] Add backend-supported settings management so panel migrations require admin input rather than Vercel changes.
+- [ ] Build, test, and deploy the admin-enabled Varnox hub to Vercel production.
