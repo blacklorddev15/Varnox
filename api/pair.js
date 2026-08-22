@@ -8,7 +8,7 @@ let currentConfig = {
   serverIp: process.env.SERVER_IP || '139.59.111.210',
   serverPort: process.env.SERVER_PORT || '25572',
   premiumMode: process.env.PREMIUM_MODE === 'true',
-  adminPassword: process.env.ADMIN_PASSWORD || 'skylar10',
+  adminPassword: process.env.ADMIN_PASSWORD || 'varnox10',
 };
 
 const generatedKeys = new Set(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);

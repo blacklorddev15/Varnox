@@ -147,13 +147,13 @@ export default function App() {
           if (typeof data.config.premiumMode === 'boolean') setIsPremiumMode(data.config.premiumMode);
         }
       } else {
-        setAdminLoginError(data.error || 'Incorrect admin password (try skylar10)');
+        setAdminLoginError(data.error || 'Incorrect admin password (try varnox10)');
       }
     } catch {
-      if (adminPassword === 'skylar10') {
+      if (adminPassword === 'varnox10') {
         setIsAdminLoggedIn(true);
       } else {
-        setAdminLoginError('Incorrect admin password (try skylar10)');
+        setAdminLoginError('Incorrect admin password (try varnox10)');
       }
     }
   };
@@ -428,7 +428,7 @@ export default function App() {
               <form onSubmit={handleAdminLogin} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-mono text-cyan-300 mb-2 uppercase tracking-wider">
-                    Admin Password (Default: skylar10)
+                    Admin Password (Default: varnox10)
                   </label>
                   <input
                     type="password"

@@ -23,6 +23,8 @@
 - [x] Add live uptime tracking and paired-user statistics to the Varnox hub status.
 - [x] Implement premium mode toggle and activation key validation in the pairing gateway.
 - [x] Build, test, and deploy the updated Varnox hub to Vercel production.
-- [ ] Create a protected admin section in Varnox App.tsx for panel domain, server allocation, and API key management.
-- [ ] Add backend-supported settings management so panel migrations require admin input rather than Vercel changes.
-- [ ] Build, test, and deploy the admin-enabled Varnox hub to Vercel production.
+- [x] Create a protected admin section in Varnox App.tsx for panel domain, server allocation, and API key management.
+- [x] Add backend-supported settings management so panel migrations require admin input rather than Vercel changes.
+- [x] Build, test, and deploy the admin-enabled Varnox hub to Vercel production.
+- [ ] Update Varnox admin password to varnox10 in both frontend helper text and backend API verification.
+- [ ] Build, test, and deploy the password update to Vercel production.
