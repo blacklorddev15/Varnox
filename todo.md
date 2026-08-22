@@ -17,6 +17,9 @@
 - [x] Rework Varnox App.tsx to match the reference site style with transparent frosted glass cards.
 - [x] Keep the supplied user background artwork clearly visible across the transparent layout.
 - [x] Build, test, and deploy the reference-matched Varnox site to Vercel production.
-- [ ] Elevate Varnox design with premium typography, layered glassmorphism, refined gradients, and smooth interactive states.
-- [ ] Maintain perfect visibility of the anime background artwork with a sophisticated dark-tinted glass card design.
-- [ ] Build, test, and deploy the premium Varnox hub to Vercel production.
+- [x] Elevate Varnox design with premium typography, layered glassmorphism, refined gradients, and smooth interactive states.
+- [x] Maintain perfect visibility of the anime background artwork with a sophisticated dark-tinted glass card design.
+- [x] Build, test, and deploy the premium Varnox hub to Vercel production.
+- [ ] Add live uptime tracking and paired-user statistics to the Varnox hub status.
+- [ ] Implement premium mode toggle and activation key validation in the pairing gateway.
+- [ ] Build, test, and deploy the updated Varnox hub to Vercel production.

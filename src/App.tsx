@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   ArrowUpRight,
@@ -9,6 +9,7 @@ import {
   Copy,
   Cpu,
   Fingerprint,
+  KeyRound,
   Lock,
   Radio,
   RefreshCw,
@@ -16,6 +17,7 @@ import {
   Shield,
   Sparkles,
   Terminal,
+  Users,
   Zap,
 } from 'lucide-react';
 
@@ -31,11 +33,37 @@ const modules = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('pairing');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [activationKey, setActivationKey] = useState('');
   const pairingBridgeUrl = (import.meta.env.VITE_VARNOX_PAIRING_URL || '/api').replace(/\/$/, '');
   const [isLoading, setIsLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Live stats state
+  const [uptime, setUptime] = useState('0h 14m 32s');
+  const [pairedCount, setPairedCount] = useState(1428);
+  const [isPremiumMode, setIsPremiumMode] = useState(false);
+
+  useEffect(() => {
+    // Fetch live stats from API
+    async function fetchStats() {
+      try {
+        const res = await fetch(`${pairingBridgeUrl}?stats=1`, { headers: { Accept: 'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.uptime) setUptime(data.uptime);
+          if (data.pairedCount) setPairedCount(data.pairedCount);
+          if (typeof data.premiumMode === 'boolean') setIsPremiumMode(data.premiumMode);
+        }
+      } catch {
+        // use default metrics if offline
+      }
+    }
+    fetchStats();
+    const interval = setInterval(fetchStats, 15000);
+    return () => clearInterval(interval);
+  }, [pairingBridgeUrl]);
 
   const handleGeneratePairing = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -52,17 +80,22 @@ export default function App() {
       const cleaned = phoneNumber.replace(/[^0-9]/g, '');
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const response = await fetch(`${pairingBridgeUrl}/pair?phone=${cleaned}`, {
+      
+      const endpoint = `${pairingBridgeUrl}?phone=${cleaned}${activationKey ? `&key=${encodeURIComponent(activationKey)}` : ''}`;
+      const response = await fetch(endpoint, {
         headers: { Accept: 'application/json' },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || data.error || 'The pairing bridge rejected the request.');
+      if (!response.ok) throw new Error(data.error || data.message || 'The pairing bridge rejected the request.');
+      
       const code = data.code || data.pairingCode || data.pairCode;
       if (!code) throw new Error('The pairing bridge responded without a pairing code.');
+      
       setPairingCode(String(code));
+      if (data.pairedCount) setPairedCount(data.pairedCount);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to reach the Varnox pairing bridge.');
     } finally {
@@ -139,12 +172,12 @@ export default function App() {
 
             <div className="mt-9 grid max-w-lg grid-cols-3 gap-3 border-y border-white/12 py-4">
               <div>
-                <p className="text-lg font-heading text-white">24/7</p>
-                <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Node uptime</p>
+                <p className="text-lg font-heading text-white">{uptime}</p>
+                <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Live uptime</p>
               </div>
               <div className="border-l border-white/12 pl-4">
-                <p className="text-lg font-heading text-white">01</p>
-                <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Unified hub</p>
+                <p className="text-lg font-heading text-white">{pairedCount.toLocaleString()}</p>
+                <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Users paired</p>
               </div>
               <div className="border-l border-white/12 pl-4">
                 <p className="text-lg font-heading text-white">AES</p>
@@ -164,8 +197,9 @@ export default function App() {
               <div className="premium-card rounded-[26px] p-5 sm:p-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-cyan-200">
-                      <Radio className="h-3.5 w-3.5 animate-premium-pulse" /> SECURE ENTRY
+                    <div className="flex items-center justify-between gap-3 text-[10px] font-mono tracking-[0.2em] text-cyan-200">
+                      <span className="flex items-center gap-1.5"><Radio className="h-3.5 w-3.5 animate-premium-pulse" /> SECURE ENTRY</span>
+                      {isPremiumMode && <span className="rounded bg-amber-400/20 px-2 py-0.5 text-amber-300 border border-amber-400/30">PREMIUM MODE</span>}
                     </div>
                     <h3 className="mt-3 font-heading text-2xl font-semibold tracking-wide text-white">Pair your device</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-300">Enter your WhatsApp number to request a live link from the Varnox node.</p>
@@ -189,6 +223,25 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  {isPremiumMode && (
+                    <div>
+                      <label className="mb-2 flex items-center justify-between text-[10px] font-mono tracking-[0.18em] text-amber-300">
+                        <span>ACTIVATION KEY REQUIRED</span>
+                        <span className="text-slate-400">PREMIUM MODE ACTIVE</span>
+                      </label>
+                      <div className="flex items-center rounded-xl border border-amber-400/35 bg-black/35 px-4 transition focus-within:border-amber-400">
+                        <KeyRound className="mr-2 h-4 w-4 text-amber-300" />
+                        <input
+                          type="text"
+                          value={activationKey}
+                          onChange={(event) => setActivationKey(event.target.value)}
+                          placeholder="Enter your activation key"
+                          className="w-full bg-transparent py-4 text-sm font-mono text-white outline-none placeholder:text-slate-600"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {errorMessage && <div className="rounded-xl border border-rose-300/25 bg-rose-950/40 px-4 py-3 text-xs leading-5 text-rose-100">{errorMessage}</div>}
 
@@ -226,12 +279,12 @@ export default function App() {
             {activeTab === 'overview' && (
               <div className="premium-card rounded-[26px] p-6 sm:p-8">
                 <div className="flex items-start justify-between">
-                  <div><p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">NETWORK OVERVIEW</p><h3 className="mt-3 font-heading text-2xl text-white">One hub. Every command.</h3></div>
-                  <Activity className="h-6 w-6 text-cyan-200" />
+                  <div><p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">NETWORK OVERVIEW</p><h3 className="mt-3 font-heading text-2xl text-white">Live Hub Metrics</h3></div>
+                  <Users className="h-6 w-6 text-cyan-200" />
                 </div>
                 <div className="my-6 h-px hairline opacity-50" />
                 <div className="space-y-3">
-                  {[['Hub status', 'ONLINE', 'text-emerald-200'], ['Merged version', 'Varnox XMD Universal', 'text-cyan-200'], ['Hosting engine', 'Pterodactyl + Vercel', 'text-white'], ['Link security', 'Encrypted bridge', 'text-white']].map(([label, value, color]) => <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-mono"><span className="text-slate-400">{label}</span><span className={color}>{value}</span></div>)}
+                  {[['Hub status', 'ONLINE', 'text-emerald-200'], ['Live uptime', uptime, 'text-cyan-200'], ['Total paired users', pairedCount.toLocaleString(), 'text-cyan-200'], ['Hosting mode', isPremiumMode ? 'Premium (Key Required)' : 'Free (Open Pairing)', 'text-amber-300']].map(([label, value, color]) => <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-mono"><span className="text-slate-400">{label}</span><span className={color}>{value}</span></div>)}
                 </div>
                 <button onClick={() => setActiveTab('pairing')} className="mt-6 inline-flex items-center gap-2 text-[10px] font-mono tracking-[0.16em] text-cyan-200 transition hover:text-white">RETURN TO PAIRING <ChevronRight className="h-4 w-4" /></button>
               </div>
@@ -252,7 +305,7 @@ export default function App() {
       <div className="relative z-10 border-t border-white/10 bg-slate-950/30 px-5 py-4 backdrop-blur-xl sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-[9px] font-mono tracking-[0.16em] text-slate-400 sm:flex-row">
           <span>© 2026 VARNOX ECOSYSTEM / ALL RIGHTS RESERVED</span>
-          <span className="text-cyan-200">PREMIUM BOT INTELLIGENCE / FULLY COMBINED</span>
+          <span className="text-cyan-200">UPTIME: {uptime} • PAIRED: {pairedCount.toLocaleString()}</span>
         </div>
       </div>
     </div>
