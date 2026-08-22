@@ -13,6 +13,15 @@ let currentConfig = {
 
 const generatedKeys = new Set(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);
 
+function getBackendUrl() {
+  return (process.env.VARNOX_BACKEND_URL || `http://${currentConfig.serverIp}:${currentConfig.serverPort}`).replace(/\/$/, '');
+}
+
+function publicConfig() {
+  const { panelApiKey: _panelApiKey, adminPassword: _adminPassword, ...safe } = currentConfig;
+  return safe;
+}
+
 export default async function handler(request, response) {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -25,6 +34,18 @@ export default async function handler(request, response) {
 
   // Handle stats/health requests
   if (request.method === 'GET' && request.query?.stats === '1') {
+    let backendOnline = false;
+    const healthController = new AbortController();
+    const healthTimeout = setTimeout(() => healthController.abort(), 5000);
+    try {
+      const health = await fetch(getBackendUrl(), { headers: { Accept: 'application/json' }, signal: healthController.signal });
+      backendOnline = health.ok;
+    } catch {
+      backendOnline = false;
+    } finally {
+      clearTimeout(healthTimeout);
+    }
+
     const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
     const hours = Math.floor(uptimeSeconds / 3600);
     const minutes = Math.floor((uptimeSeconds % 3600) / 60);
@@ -32,7 +53,7 @@ export default async function handler(request, response) {
     const uptimeStr = `${hours}h ${minutes}m ${seconds}s`;
 
     response.status(200).json({
-      status: 'online',
+      status: backendOnline ? 'online' : 'offline',
       uptime: uptimeStr,
       pairedCount: totalPairs,
       premiumMode: currentConfig.premiumMode,
@@ -50,7 +71,7 @@ export default async function handler(request, response) {
 
     if (action === 'admin_login') {
       if (body.password === currentConfig.adminPassword) {
-        response.status(200).json({ success: true, config: currentConfig });
+        response.status(200).json({ success: true, config: publicConfig() });
       } else {
         response.status(401).json({ error: 'Invalid admin password.' });
       }
@@ -70,7 +91,7 @@ export default async function handler(request, response) {
       if (body.serverPort !== undefined) currentConfig.serverPort = String(body.serverPort);
       if (typeof body.premiumMode === 'boolean') currentConfig.premiumMode = body.premiumMode;
 
-      response.status(200).json({ success: true, message: 'Panel settings updated successfully!', config: currentConfig });
+      response.status(200).json({ success: true, message: 'Panel settings updated successfully!', config: publicConfig() });
       return;
     }
 
@@ -104,7 +125,7 @@ export default async function handler(request, response) {
     return;
   }
 
-  const backendUrl = (process.env.VARNOX_BACKEND_URL || `http://${currentConfig.serverIp}:${currentConfig.serverPort}`).replace(/\/$/, '');
+  const backendUrl = getBackendUrl();
   
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
@@ -119,10 +140,7 @@ export default async function handler(request, response) {
     response.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     response.status(upstream.status).send(body);
   } catch {
-    // Fallback simulation when direct backend is unreachable
-    totalPairs += 1;
-    const mockCode = 'VNX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    response.status(200).json({ code: mockCode, pairedCount: totalPairs, note: 'Generated via resilient proxy fallback' });
+    response.status(502).json({ error: 'Varnox backend is offline. Please start the bot server on your Pterodactyl panel.' });
   } finally {
     clearTimeout(timeout);
   }

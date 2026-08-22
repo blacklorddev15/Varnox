@@ -37,15 +37,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('pairing');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [activationKey, setActivationKey] = useState('');
-  const pairingBridgeUrl = (import.meta.env.VITE_VARNOX_PAIRING_URL || '/api').replace(/\/$/, '');
+  const pairingBridgeUrl = (import.meta.env.VITE_VARNOX_PAIRING_URL || '/api/pair').replace(/\/$/, '');
   const [isLoading, setIsLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   // Live stats & admin state
-  const [uptime, setUptime] = useState('0h 14m 32s');
-  const [pairedCount, setPairedCount] = useState(1428);
+  const [uptime, setUptime] = useState('—');
+  const [pairedCount, setPairedCount] = useState<number | null>(null);
   const [isPremiumMode, setIsPremiumMode] = useState(false);
 
   // Admin modal & settings state
@@ -67,15 +68,22 @@ export default function App() {
         const res = await fetch(`${pairingBridgeUrl}?stats=1`, { headers: { Accept: 'application/json' } });
         if (res.ok) {
           const data = await res.json();
+          setBridgeStatus(data.status === 'offline' ? 'offline' : 'online');
           if (data.uptime) setUptime(data.uptime);
-          if (data.pairedCount) setPairedCount(data.pairedCount);
+          if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
           if (typeof data.premiumMode === 'boolean') setIsPremiumMode(data.premiumMode);
           if (data.panelDomain) setPanelDomain(data.panelDomain);
           if (data.serverIp) setServerIp(data.serverIp);
           if (data.serverPort) setServerPort(data.serverPort);
+        } else {
+          setBridgeStatus('offline');
+          setUptime('—');
+          setPairedCount(null);
         }
       } catch {
-        // use defaults if offline
+        setBridgeStatus('offline');
+        setUptime('—');
+        setPairedCount(null);
       }
     }
     fetchStats();
@@ -113,7 +121,8 @@ export default function App() {
       if (!code) throw new Error('The pairing bridge responded without a pairing code.');
       
       setPairingCode(String(code));
-      if (data.pairedCount) setPairedCount(data.pairedCount);
+      if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
+      setBridgeStatus('online');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to reach the Varnox pairing bridge.');
     } finally {
@@ -150,11 +159,8 @@ export default function App() {
         setAdminLoginError(data.error || 'Incorrect admin password (try varnox10)');
       }
     } catch {
-      if (adminPassword === 'varnox10') {
-        setIsAdminLoggedIn(true);
-      } else {
-        setAdminLoginError('Incorrect admin password (try varnox10)');
-      }
+      setBridgeStatus('offline');
+      setAdminLoginError('Varnox bridge is offline. Start the Pterodactyl backend before signing in.');
     }
   };
 
@@ -180,7 +186,8 @@ export default function App() {
         setAdminStatusMessage(data.error || 'Failed to update settings.');
       }
     } catch {
-      setAdminStatusMessage('Settings saved locally (simulation).');
+      setBridgeStatus('offline');
+      setAdminStatusMessage('Varnox bridge is offline. Settings were not saved.');
     }
   };
 
@@ -197,9 +204,8 @@ export default function App() {
         setAdminStatusMessage(`Generated new activation key: ${data.key}`);
       }
     } catch {
-      const fallbackKey = 'VNX-KEY-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-      setGeneratedKeysList((prev) => [fallbackKey, ...prev]);
-      setAdminStatusMessage(`Generated new key: ${fallbackKey}`);
+      setBridgeStatus('offline');
+      setAdminStatusMessage('Varnox bridge is offline. No activation key was generated.');
     }
   };
 
@@ -250,8 +256,8 @@ export default function App() {
               <Sliders className="w-3.5 h-3.5" /> ADMIN PANEL
             </button>
             <div className="hidden sm:flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/8 px-3 py-2 text-[10px] font-mono tracking-[0.13em] text-emerald-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-premium-pulse" />
-              ONLINE
+              <span className={`h-1.5 w-1.5 rounded-full ${bridgeStatus === 'online' ? 'bg-emerald-300 animate-premium-pulse' : bridgeStatus === 'offline' ? 'bg-rose-300' : 'bg-amber-300 animate-pulse'}`} />
+              {bridgeStatus === 'online' ? 'ONLINE' : bridgeStatus === 'offline' ? 'OFFLINE' : 'CHECKING'}
             </div>
           </div>
         </div>
@@ -277,7 +283,7 @@ export default function App() {
                 <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Live uptime</p>
               </div>
               <div className="border-l border-white/12 pl-4">
-                <p className="text-lg font-heading text-white">{pairedCount.toLocaleString()}</p>
+                <p className="text-lg font-heading text-white">{pairedCount === null ? '—' : pairedCount.toLocaleString()}</p>
                 <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-slate-300">Users paired</p>
               </div>
               <div className="border-l border-white/12 pl-4">
@@ -371,7 +377,7 @@ export default function App() {
                 )}
 
                 <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-[9px] font-mono tracking-[0.15em] text-slate-400">
-                  <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5 text-emerald-200" /> BRIDGE OPERATIONAL</span>
+                  <span className={`flex items-center gap-2 ${bridgeStatus === 'offline' ? 'text-rose-200' : bridgeStatus === 'checking' ? 'text-amber-200' : 'text-emerald-200'}`}><Activity className="h-3.5 w-3.5" /> {bridgeStatus === 'online' ? 'BRIDGE OPERATIONAL' : bridgeStatus === 'offline' ? 'BRIDGE OFFLINE' : 'CHECKING BRIDGE'}</span>
                   <span>HTTPS / ENCRYPTED</span>
                 </div>
               </div>
@@ -385,7 +391,7 @@ export default function App() {
                 </div>
                 <div className="my-6 h-px hairline opacity-50" />
                 <div className="space-y-3">
-                  {[['Hub status', 'ONLINE', 'text-emerald-200'], ['Live uptime', uptime, 'text-cyan-200'], ['Total paired users', pairedCount.toLocaleString(), 'text-cyan-200'], ['Hosting mode', isPremiumMode ? 'Premium (Key Required)' : 'Free (Open Pairing)', 'text-amber-300'], ['Active panel', panelDomain, 'text-cyan-200']].map(([label, value, color]) => <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-mono"><span className="text-slate-400">{label}</span><span className={color}>{value}</span></div>)}
+                  {[['Hub status', bridgeStatus === 'online' ? 'ONLINE' : bridgeStatus === 'offline' ? 'OFFLINE' : 'CHECKING', bridgeStatus === 'online' ? 'text-emerald-200' : bridgeStatus === 'offline' ? 'text-rose-200' : 'text-amber-200'], ['Live uptime', uptime, 'text-cyan-200'], ['Total paired users', pairedCount === null ? '—' : pairedCount.toLocaleString(), 'text-cyan-200'], ['Hosting mode', isPremiumMode ? 'Premium (Key Required)' : 'Free (Open Pairing)', 'text-amber-300'], ['Active panel', panelDomain, 'text-cyan-200']].map(([label, value, color]) => <div key={label} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-mono"><span className="text-slate-400">{label}</span><span className={color}>{value}</span></div>)}
                 </div>
                 <button onClick={() => setActiveTab('pairing')} className="mt-6 inline-flex items-center gap-2 text-[10px] font-mono tracking-[0.16em] text-cyan-200 transition hover:text-white">RETURN TO PAIRING <ChevronRight className="h-4 w-4" /></button>
               </div>
@@ -553,7 +559,7 @@ export default function App() {
       <div className="relative z-10 border-t border-white/10 bg-slate-950/30 px-5 py-4 backdrop-blur-xl sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-[9px] font-mono tracking-[0.16em] text-slate-400 sm:flex-row">
           <span>© 2026 VARNOX ECOSYSTEM / ALL RIGHTS RESERVED</span>
-          <span className="text-cyan-200">UPTIME: {uptime} • PAIRED: {pairedCount.toLocaleString()}</span>
+          <span className="text-cyan-200">{bridgeStatus === 'online' ? `UPTIME: ${uptime} • PAIRED: ${pairedCount === null ? '—' : pairedCount.toLocaleString()}` : `BRIDGE ${bridgeStatus === 'offline' ? 'OFFLINE' : 'CHECKING'}`}</span>
         </div>
       </div>
     </div>

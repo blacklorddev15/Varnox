@@ -26,5 +26,49 @@
 - [x] Create a protected admin section in Varnox App.tsx for panel domain, server allocation, and API key management.
 - [x] Add backend-supported settings management so panel migrations require admin input rather than Vercel changes.
 - [x] Build, test, and deploy the admin-enabled Varnox hub to Vercel production.
-- [ ] Update Varnox admin password to varnox10 in both frontend helper text and backend API verification.
-- [ ] Build, test, and deploy the password update to Vercel production.
+- [x] Update Varnox admin password to varnox10 in both frontend helper text and backend API verification.
+- [x] Build, test, and deploy the password update to Vercel production.
+- [x] Update Skylar XMD website with migration settings for zero-Vercel-touch server changes.
+- [x] Update Talkless XMD website with migration settings for panel domain, server IP, and allocation port.
+- [x] Deploy Talkless migration settings to the Skylar-style admin flow.
+- [x] Update Muzan website with a Migration tab for panel domain, server IP, and allocation port.
+- [x] Deploy Muzan migration controls to the Muzan Vercel project.
+- [x] Add Titan MD admin dashboard access and Migration tab.
+- [x] Wire Titan MD pairing requests to admin-managed backend host and allocation port.
+- [x] Update Talkless XMD website with migration settings for panel domain, server IP, and allocation port.
+- [x] Deploy Talkless migration settings and server-backed bridge to Vercel production.
+- [x] Diagnose that the user was opening talkless-puce.vercel.app instead of talkless-tech.vercel.app.
+- [x] Deploy the latest Talkless migration build to talkless-puce.vercel.app and verify its live admin Migration tab.
+- [x] Verify Skylar production deployment at https://skylar-lyart.vercel.app with server-backed migration settings and `/api/pair` bridge.
+- [x] Package Pterodactyl backend files for all six bots (Varnox, Skylar, Talkless, Muzan, Rita, Titan) into individual ZIP archives.
+- [x] Create and package Titan MD console pairing backend (`titan_console_pairing_backend.zip`) for direct Pterodactyl console pairing without website or Telegram dependencies.
+- [x] Create and package complete Pterodactyl backend archives for all six bots containing all source files and directories.
+- [x] Deliver runnable Pterodactyl backend archives supporting website pairing and Telegram controls.
+- [x] Download and package live Pterodactyl panel file archives for all six bots (Titan, Varnox, Skylar, Talkless, Muzan, Rita).
+- [x] Package six clean website-enabled Pterodactyl backend archives with server IP, allocation port, and migration support.
+- [x] Create slim Varnox pure backend package (`varnox_md_pure_backend.zip`, ~25KB) excluding frontend assets and nested archives.
+- [ ] Verify live pairing-code generation on Titan MD website and capture screenshot.
+- [ ] Run current six-website pairing verification and attach one screenshot per site.
+- [ ] Verify live pairing-code generation on Varnox MD website and capture screenshot.
+- [ ] Verify live pairing-code generation on Skylar XMD website and capture screenshot.
+- [ ] Verify live pairing-code generation on Talkless XMD website and capture screenshot.
+- [ ] Verify live pairing-code generation on Muzan MD website and capture screenshot.
+- [ ] Verify live pairing-code generation on Rita XMD website and capture screenshot.
+- [x] Repackage all six Pterodactyl backends with explicit root `.env` and `.env.example` templates containing correct secrets and allocation ports.
+- [x] Regenerate all six Pterodactyl backend packages with complete command sets, website pairing bridges, Telegram pairing handlers, and visible root `.env` templates.
+- [x] Rebuild Varnox MD using the complete command-filled backend source archive with active dual pairing.
+- [x] Rebuild Titan MD using the complete command-filled backend source archive with active dual pairing and console pairing support.
+- [x] Investigate and diagnose pairing generation failures on Titan, Varnox, Skylar, Muzan, and Rita websites.
+- [x] Retest Titan, Varnox, Skylar, Muzan, and Rita pairing flows and capture actual codes or final errors.
+- [x] Fix Rita XMD frontend code display so actual pairing codes render visibly on screen.
+- [ ] Investigate and fix Skylar XMD and Titan MD pairing generation errors.
+- [ ] Fix Skylar and Varnox frontend parsing and proxy fallback bugs.
+- [ ] Update Skylar and Varnox backend archives on the user's Pterodactyl panel and verify live pairing.
+- [x] Enforce strict panel-offline error responses on Skylar and Varnox bridges without fallback codes.
+- [x] Ensure Skylar and Varnox never show fake codes when Pterodactyl is offline.
+- [ ] Create a new Skylar Pterodactyl server and verify live website pairing.
+
+- [ ] Reconcile live Varnox frontend route with the tracked `/api/pair` Vercel bridge.
+- [ ] Confirm the live Varnox backend exposes the website pairing contract and uses the configured migration target.
+- [ ] Verify Varnox live pairing code rendering and explicit offline behavior.
+- [ ] Package and deliver the verified Varnox backend and migration notes.
