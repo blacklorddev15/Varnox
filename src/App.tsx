@@ -297,7 +297,7 @@ export default function App() {
       </header>
 
       <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center px-5 py-10 sm:px-8 lg:py-16">
-        <div className="grid w-full items-center gap-12 lg:grid-cols-[1fr_0.82fr] lg:gap-20">
+        <div className="grid w-full grid-cols-1 items-center gap-10 lg:gap-12">
           <section className="max-w-xl">
             <div className="mb-6 flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] text-cyan-200">
               <span className="h-px w-12 hairline" />
@@ -476,7 +476,7 @@ export default function App() {
               </div>
               <CheckCircle2 className="hidden h-7 w-7 text-emerald-300 sm:block" />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3">
               {[
                 ['Dashboard', 'Status, uptime, paired account, and activity overview.', Users],
                 ['Commands', 'Public command directory with categories and examples.', Terminal],
