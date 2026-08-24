@@ -1,9 +1,9 @@
+import crypto from 'node:crypto';
 let totalPairs = 0;
 const startTime = Date.now();
 
 const currentConfig = {
   panelDomain: process.env.PANEL_DOMAIN || 'https://pterodactyl.mzazi.shop',
-  serverIp: process.env.SERVER_IP || '139.59.111.210',
   serverPort: process.env.SERVER_PORT || '25572',
   serverId: process.env.SERVER_ID || '5574df2c',
   backendSecret: String(process.env.BACKEND_API_SECRET || process.env.API_SECRET || process.env.PANEL_API_KEY || process.env.PANEL_APIKEY || '').trim(),
@@ -12,12 +12,33 @@ const currentConfig = {
 };
 
 const generatedKeys = new Set(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);
+function signingSecret() { return currentConfig.backendSecret || currentConfig.adminPassword || ''; }
+function issueActivationKey() {
+  const prefix = 'VNX-PRO';
+  const nonce = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const payload = prefix + '-' + nonce + '-' + timestamp;
+  const signature = crypto.createHmac('sha256', signingSecret()).update(payload).digest('hex').slice(0, 16).toUpperCase();
+  return payload + '-' + signature;
+}
+function validActivationKey(key) {
+  if (generatedKeys.has(key) || key === 'VARNOX-PRO-2026') return true;
+  const match = String(key || '').match(/^(VNX-PRO)-([A-Z0-9]{6})-([A-Z0-9]+)-([A-F0-9]{16})$/);
+  if (!match || !signingSecret()) return false;
+  const payload = match[1] + '-' + match[2] + '-' + match[3];
+  const expected = crypto.createHmac('sha256', signingSecret()).update(payload).digest('hex').slice(0, 16).toUpperCase();
+  return match[4] === expected;
+}
+
 
 function getBackendUrl() {
-  const host = String(currentConfig.serverIp || '').trim();
+  const panel = String(currentConfig.panelDomain || '').trim();
   const port = String(currentConfig.serverPort || '').trim();
-  if (/^https?:\/\//i.test(host)) return host.replace(/\/$/, '');
-  return host ? `http://${host}${port ? `:${port}` : ''}` : '';
+  if (!panel) return '';
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(panel) ? panel : `https://${panel}`);
+    return `http://${parsed.hostname}${port ? `:${port}` : ''}`;
+  } catch { return ''; }
 }
 
 function maskSecret(value) {
@@ -30,7 +51,6 @@ function maskSecret(value) {
 function publicConfig() {
   return {
     panelDomain: currentConfig.panelDomain,
-    serverIp: currentConfig.serverIp,
     serverPort: currentConfig.serverPort,
     serverId: currentConfig.serverId,
     premiumMode: currentConfig.premiumMode,
@@ -52,7 +72,7 @@ function adminAuthorized(request, body) {
 
 async function checkBackend() {
   const base = String(getBackendUrl() || '').trim();
-  if (!base) return { online: false, statusCode: 0, error: 'Server host/IP is not configured.' };
+  if (!base) return { online: false, statusCode: 0, error: 'Pterodactyl panel domain and allocation port are not configured.' };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   let lastStatus = 0;
@@ -94,8 +114,7 @@ export default async function handler(request, response) {
       pairedCount: totalPairs,
       premiumMode: currentConfig.premiumMode,
       panelDomain: currentConfig.panelDomain,
-      serverIp: currentConfig.serverIp,
-      serverPort: currentConfig.serverPort,
+        serverPort: currentConfig.serverPort,
       serverId: currentConfig.serverId,
     });
     return;
@@ -124,7 +143,6 @@ export default async function handler(request, response) {
       return;
     }
     if (body.panelDomain !== undefined) currentConfig.panelDomain = String(body.panelDomain).trim();
-    if (body.serverIp !== undefined) currentConfig.serverIp = String(body.serverIp).trim();
     if (body.serverPort !== undefined) currentConfig.serverPort = String(body.serverPort).trim();
     if (body.serverId !== undefined) currentConfig.serverId = String(body.serverId).trim();
     const newSecret = body.backendSecret ?? body.panelApiKey;
@@ -149,7 +167,7 @@ export default async function handler(request, response) {
       response.status(401).json({ error: 'Unauthorized admin access.' });
       return;
     }
-    const newKey = 'VNX-PRO-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+    const newKey = issueActivationKey();
     generatedKeys.add(newKey);
     response.status(200).json({ success: true, key: newKey, keys: Array.from(generatedKeys) });
     return;
@@ -157,7 +175,7 @@ export default async function handler(request, response) {
 
   const phone = String(body?.phone || '').replace(/\D/g, '');
   const key = String(body?.key || body?.activationKey || '').trim();
-  if (currentConfig.premiumMode && (!key || (!generatedKeys.has(key) && key !== 'VARNOX-PRO-2026'))) {
+  if (currentConfig.premiumMode && !validActivationKey(key)) {
     response.status(403).json({ error: 'Premium mode is active. A valid activation key generated from the admin panel is required to pair.' });
     return;
   }
@@ -168,7 +186,7 @@ export default async function handler(request, response) {
 
   const backendUrl = getBackendUrl();
   if (!backendUrl) {
-    response.status(503).json({ error: 'Varnox backend host/IP is not configured.' });
+    response.status(503).json({ error: 'Pterodactyl panel domain and allocation port are not configured.' });
     return;
   }
 
@@ -184,7 +202,7 @@ export default async function handler(request, response) {
     response.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     response.status(upstream.status).send(upstreamBody);
   } catch {
-    response.status(502).json({ error: 'Varnox backend is offline. Check the Pterodactyl host, allocation port, server ID, and that the backend is running.' });
+    response.status(502).json({ error: 'Varnox backend is offline. Check the Pterodactyl panel domain, allocation port, and that the backend is running.' });
   } finally {
     clearTimeout(timeout);
   }
