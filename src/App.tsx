@@ -296,8 +296,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-5 py-10 sm:px-8 lg:py-16">
-        <div className="grid w-full grid-cols-1 items-center gap-10 lg:gap-12">
+      <main className="relative z-10 mx-auto flex w-full max-w-xl flex-1 flex-col items-center px-4 py-6 sm:px-8 sm:py-10 md:max-w-7xl lg:py-16">
+        <div className="grid w-full max-w-xl grid-cols-1 items-center gap-8 md:max-w-7xl lg:gap-12">
           <section className="max-w-xl">
             <div className="mb-6 flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] text-cyan-200">
               <span className="h-px w-12 hairline" />
@@ -332,7 +332,7 @@ export default function App() {
             </div>
           </section>
 
-          <section className="w-full max-w-3xl">
+          <section className="w-full max-w-none">
             {portalNotice && <div className="mb-4 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-xs font-mono leading-5 text-cyan-100">{portalNotice}</div>}
             {activeTab === 'pairing' && (
               <div className="premium-card rounded-[26px] p-5 sm:p-7">
