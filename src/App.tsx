@@ -332,7 +332,7 @@ export default function App() {
             </div>
           </section>
 
-          <section className="w-full max-w-xl justify-self-end">
+          <section className="w-full max-w-3xl">
             {portalNotice && <div className="mb-4 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-xs font-mono leading-5 text-cyan-100">{portalNotice}</div>}
             {activeTab === 'pairing' && (
               <div className="premium-card rounded-[26px] p-5 sm:p-7">
