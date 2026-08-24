@@ -24,7 +24,7 @@ import {
   Key,
 } from 'lucide-react';
 
-type Tab = 'pairing' | 'overview' | 'modules' | 'admin';
+type Tab = 'pairing' | 'overview' | 'modules' | 'premium' | 'customize' | 'automation' | 'migration' | 'support';
 
 const modules = [
   { icon: Shield, title: 'Group security', detail: 'Moderation & protection' },
@@ -57,7 +57,6 @@ export default function App() {
 
   // Editable panel settings
   const [panelDomain, setPanelDomain] = useState('https://pterodactyl.mzazi.shop');
-  const [serverIp, setServerIp] = useState('139.59.111.210');
   const [serverPort, setServerPort] = useState('25572');
   const [serverId, setServerId] = useState('');
   const [backendSecretInput, setBackendSecretInput] = useState('');
@@ -65,6 +64,7 @@ export default function App() {
   const [migrationTestStatus, setMigrationTestStatus] = useState<string | null>(null);
   const [generatedKeysList, setGeneratedKeysList] = useState<string[]>(['VARNOX-PRO-2026', 'SKYLAR-VIP-777']);
   const [adminStatusMessage, setAdminStatusMessage] = useState<string | null>(null);
+  const [portalNotice, setPortalNotice] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
@@ -77,7 +77,6 @@ export default function App() {
           if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
           if (typeof data.premiumMode === 'boolean') setIsPremiumMode(data.premiumMode);
           if (data.panelDomain) setPanelDomain(data.panelDomain);
-          if (data.serverIp) setServerIp(data.serverIp);
           if (data.serverPort) setServerPort(data.serverPort);
           if (data.serverId) setServerId(data.serverId);
           if (data.backendSecretMasked) setBackendSecretMasked(data.backendSecretMasked);
@@ -157,7 +156,6 @@ export default function App() {
         setIsAdminLoggedIn(true);
         if (data.config) {
           if (data.config.panelDomain) setPanelDomain(data.config.panelDomain);
-          if (data.config.serverIp) setServerIp(data.config.serverIp);
           if (data.config.serverPort) setServerPort(data.config.serverPort);
           if (data.config.serverId) setServerId(data.config.serverId);
           if (data.config.backendSecretMasked) setBackendSecretMasked(data.config.backendSecretMasked);
@@ -182,7 +180,6 @@ export default function App() {
           action: 'update_settings',
           password: adminPassword,
           panelDomain,
-          serverIp,
           serverPort,
           serverId,
           ...(backendSecretInput.trim() ? { backendSecret: backendSecretInput.trim() } : {}),
@@ -237,11 +234,19 @@ export default function App() {
     }
   };
 
+  const portalUnlocked = Boolean(pairingCode);
   const tabs: { key: Tab; label: string }[] = [
     { key: 'pairing', label: 'Pairing portal' },
-    { key: 'overview', label: 'Hub status' },
-    { key: 'modules', label: 'Ecosystem' },
+    { key: 'overview', label: 'Dashboard' },
+    { key: 'modules', label: 'Commands' },
+    { key: 'customize', label: 'Customize' },
+    { key: 'automation', label: 'Automation' },
+    { key: 'support', label: 'Support' },
   ];
+
+  useEffect(() => {
+    if (!portalUnlocked && activeTab !== 'pairing') setActiveTab('pairing');
+  }, [portalUnlocked, activeTab]);
 
   return (
     <div className="min-h-screen bg-anime-artwork text-white relative flex flex-col overflow-x-hidden font-sans">
@@ -265,10 +270,10 @@ export default function App() {
           </div>
 
           <nav className="hidden lg:flex items-center gap-1 rounded-full border border-white/10 bg-black/25 p-1">
-            {tabs.map((tab) => (
+            {tabs.filter((tab) => tab.key === 'pairing' || portalUnlocked).map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => { if (tab.key === 'pairing' || portalUnlocked) setActiveTab(tab.key); }}
                 className={`rounded-full px-4 py-2 text-[11px] font-mono tracking-[0.12em] transition-all ${activeTab === tab.key ? 'bg-white/12 text-cyan-200 shadow-inner shadow-white/10' : 'text-slate-300 hover:bg-white/8 hover:text-white'}`}
               >
                 {tab.label}
@@ -328,6 +333,7 @@ export default function App() {
           </section>
 
           <section className="w-full max-w-xl justify-self-end">
+            {portalNotice && <div className="mb-4 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-3 text-xs font-mono leading-5 text-cyan-100">{portalNotice}</div>}
             {activeTab === 'pairing' && (
               <div className="premium-card rounded-[26px] p-5 sm:p-7">
                 <div className="flex items-start justify-between gap-4">
@@ -433,6 +439,31 @@ export default function App() {
                 <button onClick={() => setActiveTab('pairing')} className="mt-6 inline-flex items-center gap-2 text-[10px] font-mono tracking-[0.16em] text-cyan-200 transition hover:text-white">OPEN PAIRING PORTAL <ChevronRight className="h-4 w-4" /></button>
               </div>
             )}
+
+            {activeTab === 'customize' && (
+              <div className="premium-card rounded-[26px] p-6 sm:p-8">
+                <p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">BOT CUSTOMIZATION</p>
+                <h3 className="mt-3 font-heading text-2xl text-white">Make the node yours.</h3>
+                <div className="mt-6 space-y-3">{[['Menu identity', 'Bot name, prefix, footer, and menu image'], ['Welcome experience', 'Welcome text, group rules, and auto-reply tone'], ['Theme settings', 'Accent color, status labels, and response style']].map(([title, detail]) => <button key={title} onClick={() => setPortalNotice(`${title} settings are reserved for the protected bot configuration API.`)} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-cyan-300/35 hover:bg-cyan-300/8"><span><span className="block text-sm font-semibold text-white">{title}</span><span className="mt-1 block text-xs text-slate-400">{detail}</span></span><ChevronRight className="h-4 w-4 text-cyan-200" /></button>)}</div>
+              </div>
+            )}
+
+            {activeTab === 'automation' && (
+              <div className="premium-card rounded-[26px] p-6 sm:p-8">
+                <p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">AUTOMATION CENTER</p>
+                <h3 className="mt-3 font-heading text-2xl text-white">Set the node in motion.</h3>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">{[['Auto reply', 'Respond to keywords and common questions'], ['Group protection', 'Anti-link, anti-spam, and welcome rules'], ['Scheduled messages', 'Plan reminders and announcements'], ['Status automation', 'Publish approved status updates']].map(([title, detail]) => <button key={title} onClick={() => setPortalNotice(`${title} will be connected through the protected Varnox automation API.`)} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-cyan-300/35 hover:bg-cyan-300/8"><Zap className="h-5 w-5 text-cyan-200" /><p className="mt-4 text-sm font-semibold text-white">{title}</p><p className="mt-1 text-xs leading-5 text-slate-400">{detail}</p></button>)}</div>
+              </div>
+            )}
+
+            {activeTab === 'support' && (
+              <div className="premium-card rounded-[26px] p-6 sm:p-8">
+                <p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">SUPPORT & STATUS</p>
+                <h3 className="mt-3 font-heading text-2xl text-white">Keep the link clear.</h3>
+                <div className="mt-6 space-y-3">{[['Bridge status', bridgeStatus === 'online' ? 'Online and checking every 15 seconds.' : 'Waiting for the bridge to respond.'], ['Pairing help', 'Use your full country code without spaces or the plus sign.'], ['Escalation', 'Keep a screenshot of the error and the time it occurred.']].map(([title, detail]) => <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center gap-2 text-sm font-semibold text-white"><Activity className="h-4 w-4 text-cyan-200" />{title}</div><p className="mt-2 text-xs leading-5 text-slate-400">{detail}</p></div>)}</div>
+                <button onClick={() => setPortalNotice('Support request preparation is available. Connect this action to your preferred support channel before launch.')} className="mt-6 flex w-full items-center justify-between rounded-xl border border-white/15 bg-white/5 px-5 py-4 text-left text-slate-100 transition hover:border-cyan-300/35 hover:bg-cyan-300/10"><span className="font-mono text-[11px] tracking-[0.14em]">OPEN SUPPORT REQUEST</span><ArrowUpRight className="h-5 w-5" /></button>
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -505,7 +536,7 @@ export default function App() {
                     <Server className="w-4 h-4" /> Pterodactyl Panel Migration Settings
                   </h4>
                   <p className="text-xs text-slate-400">
-                    Update your panel domain or server IP/port here when changing servers. No Vercel website edits required!
+                    Update your panel domain, allocation port, and server ID here when changing servers. The bot host is derived from the panel domain.
                   </p>
 
                   <div>
@@ -518,15 +549,10 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-mono text-slate-300 mb-1">SERVER IP / HOST</label>
-                      <input type="text" value={serverIp} onChange={(e) => setServerIp(e.target.value)} className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-mono text-slate-300 mb-1">ALLOCATION PORT</label>
-                      <input type="text" value={serverPort} onChange={(e) => setServerPort(e.target.value)} className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-300 mb-1">ALLOCATION PORT</label>
+                    <input type="text" value={serverPort} onChange={(e) => setServerPort(e.target.value)} placeholder="Enter the bot allocation port" className="w-full bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400" />
+                    <p className="mt-1 text-[10px] text-slate-500 font-mono">No separate Server IP / Host is required.</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-mono text-slate-300 mb-1">PTERODACTYL SERVER ID</label>
