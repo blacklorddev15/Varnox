@@ -467,13 +467,12 @@ export default function App() {
           </section>
         </div>
 
-        {portalUnlocked && (
-          <section className="mt-10 w-full border-t border-white/10 pt-8">
+        <section className="mt-10 w-full border-t border-white/10 pt-8">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
-                <p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">USER PORTAL UNLOCKED</p>
+                <p className="text-[10px] font-mono tracking-[0.2em] text-cyan-200">{portalUnlocked ? 'USER PORTAL UNLOCKED' : 'PUBLIC PORTAL PREVIEW'}</p>
                 <h3 className="mt-2 font-heading text-2xl text-white sm:text-3xl">Your Varnox controls.</h3>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">These public tools are available below after the pairing flow. Premium Access and Migration remain protected inside Admin Panel.</p>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">{portalUnlocked ? 'These public tools are ready below after the pairing flow.' : 'Preview the public tools below. Pair your bot to unlock each control.'} Premium Access and Migration remain protected inside Admin Panel.</p>
               </div>
               <CheckCircle2 className="hidden h-7 w-7 text-emerald-300 sm:block" />
             </div>
@@ -485,16 +484,15 @@ export default function App() {
                 ['Automation', 'Auto replies, group protection, and scheduled notices.', Zap],
                 ['Support', 'Pairing help, bridge status, and troubleshooting.', Activity],
               ].map(([title, detail, Icon]) => (
-                <button key={String(title)} onClick={() => { setPortalNotice(`${title} controls opened in the portal panel above.`); setActiveTab(title === 'Dashboard' ? 'overview' : title === 'Commands' ? 'modules' : String(title).toLowerCase() as Tab); }} className="group rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/8 hover:shadow-[0_12px_30px_rgba(34,211,238,0.12)]">
+                <button key={String(title)} disabled={!portalUnlocked} onClick={() => { if (!portalUnlocked) { setPortalNotice('Pair your bot to unlock this control.'); return; } setPortalNotice(`${title} controls opened in the portal panel above.`); setActiveTab(title === 'Dashboard' ? 'overview' : title === 'Commands' ? 'modules' : String(title).toLowerCase() as Tab); }} className="group rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/8 hover:shadow-[0_12px_30px_rgba(34,211,238,0.12)] disabled:cursor-not-allowed disabled:opacity-70">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200"><Icon className="h-4 w-4" /></span>
                   <span className="mt-4 block text-sm font-semibold text-white">{title}</span>
                   <span className="mt-1 block text-xs leading-5 text-slate-400">{detail}</span>
-                  <span className="mt-4 block text-[9px] font-mono tracking-[0.15em] text-cyan-200 opacity-70 transition group-hover:opacity-100">OPEN CONTROL</span>
+                  <span className="mt-4 block text-[9px] font-mono tracking-[0.15em] text-cyan-200 opacity-70 transition group-hover:opacity-100">{portalUnlocked ? 'OPEN CONTROL' : 'PAIR TO UNLOCK'}</span>
                 </button>
               ))}
             </div>
           </section>
-        )}
       </main>
 
       {/* Admin Modal */}
