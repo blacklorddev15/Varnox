@@ -296,7 +296,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-center px-5 py-10 sm:px-8 lg:py-16">
+      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-5 py-10 sm:px-8 lg:py-16">
         <div className="grid w-full grid-cols-1 items-center gap-10 lg:gap-12">
           <section className="max-w-xl">
             <div className="mb-6 flex items-center gap-3 text-[10px] font-mono tracking-[0.28em] text-cyan-200">
