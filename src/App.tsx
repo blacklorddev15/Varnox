@@ -43,6 +43,9 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [pairRequestId, setPairRequestId] = useState<string | null>(null);
+  const [pairStatus, setPairStatus] = useState<'pending' | 'code_generated' | 'connected' | 'failed' | 'expired' | null>(null);
+  const [isWaiting, setIsWaiting] = useState(false);
 
   // Live stats & admin state
   const [uptime, setUptime] = useState('—');
@@ -96,6 +99,41 @@ export default function App() {
     return () => clearInterval(interval);
   }, [pairingBridgeUrl]);
 
+  const pollPairStatus = (requestId: string) => {
+    const startedAt = Date.now();
+    const interval = window.setInterval(async () => {
+      try {
+        const res = await fetch(`${pairingBridgeUrl}?id=${encodeURIComponent(requestId)}`, { headers: { Accept: 'application/json' } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Pairing request lookup failed.');
+
+        if (data.status === 'code_generated' && data.pairingCode) {
+          setPairingCode(String(data.pairingCode));
+          setPairStatus('code_generated');
+          setIsWaiting(false);
+          window.clearInterval(interval);
+        } else if (data.status === 'connected') {
+          setPairStatus('connected');
+          setIsWaiting(false);
+          window.clearInterval(interval);
+          if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
+        } else if (data.status === 'failed' || data.status === 'expired') {
+          setErrorMessage(data.error || (data.status === 'expired' ? 'The pairing request expired. Try again.' : 'The pairing request failed. Try again.'));
+          setPairStatus(data.status);
+          setIsWaiting(false);
+          window.clearInterval(interval);
+        } else if (Date.now() - startedAt > 150_000) {
+          setErrorMessage('The bot did not respond in time. Make sure it is running and try again.');
+          setPairStatus('failed');
+          setIsWaiting(false);
+          window.clearInterval(interval);
+        }
+      } catch {
+        // Transient network errors — keep polling.
+      }
+    }, 2500);
+  };
+
   const handleGeneratePairing = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!phoneNumber || phoneNumber.trim().length < 8) {
@@ -106,12 +144,14 @@ export default function App() {
     setIsLoading(true);
     setErrorMessage(null);
     setPairingCode(null);
+    setPairStatus(null);
+    setIsWaiting(false);
 
     try {
       const cleaned = phoneNumber.replace(/[^0-9]/g, '');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const endpoint = `${pairingBridgeUrl}?phone=${cleaned}${activationKey ? `&key=${encodeURIComponent(activationKey)}` : ''}`;
       const response = await fetch(endpoint, {
         headers: { Accept: 'application/json' },
@@ -121,13 +161,22 @@ export default function App() {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || data.message || 'The pairing bridge rejected the request.');
-      
-      const code = data.code || data.pairingCode || data.pairCode;
-      if (!code) throw new Error('The pairing bridge responded without a pairing code.');
-      
-      setPairingCode(String(code));
-      if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
+
+      // Reused active request that already has a code → show it immediately.
+      if (data.pairingCode) {
+        setPairingCode(String(data.pairingCode));
+        setPairStatus('code_generated');
+        if (data.pairedCount !== undefined) setPairedCount(Number(data.pairedCount));
+        setBridgeStatus('online');
+        return;
+      }
+
+      const requestId = data.requestId;
+      if (!requestId) throw new Error('The pairing bridge responded without a request id.');
+      setPairRequestId(String(requestId));
+      setIsWaiting(true);
       setBridgeStatus('online');
+      pollPairStatus(String(requestId));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to reach the Varnox pairing bridge.');
     } finally {
@@ -388,15 +437,25 @@ export default function App() {
 
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || isWaiting}
                     className="group flex w-full items-center justify-between rounded-xl bg-cyan-200 px-5 py-4 text-left text-sm font-semibold text-slate-950 shadow-[0_12px_30px_rgba(103,232,249,0.2)] transition hover:bg-cyan-100 hover:shadow-[0_14px_35px_rgba(103,232,249,0.34)] disabled:cursor-wait disabled:opacity-60"
                   >
-                    <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.14em]">{isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}{isLoading ? 'REQUESTING LIVE LINK' : 'GENERATE PAIRING CODE'}</span>
+                    <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.14em]">{isLoading || isWaiting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}{isLoading ? 'REQUESTING LIVE LINK' : isWaiting ? 'WAITING FOR BOT…' : 'GENERATE PAIRING CODE'}</span>
                     <ArrowUpRight className="h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </button>
                 </form>
 
-                {pairingCode && (
+                {pairStatus === 'connected' && (
+                  <div className="animate-fadeIn mt-6 rounded-2xl border border-emerald-300/35 bg-emerald-300/8 p-4">
+                    <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.18em] text-emerald-200">
+                      <span className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5" /> DEVICE CONNECTED</span>
+                      <span className="text-emerald-200">LIVE</span>
+                    </div>
+                    <p className="mt-3 text-center text-sm leading-5 text-slate-200">Your number is now linked to the Varnox node. The portal below is unlocked.</p>
+                  </div>
+                )}
+
+                {pairingCode && pairStatus !== 'connected' && (
                   <div className="animate-fadeIn mt-6 rounded-2xl border border-cyan-300/35 bg-cyan-300/8 p-4">
                     <div className="flex items-center justify-between text-[10px] font-mono tracking-[0.18em] text-cyan-200">
                       <span className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5" /> LIVE PAIRING CODE</span>
@@ -406,7 +465,13 @@ export default function App() {
                     <button onClick={handleCopyCode} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-200/30 bg-cyan-200/10 py-2.5 text-[10px] font-mono tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-200/20">
                       {copied ? <Check className="h-4 w-4 text-emerald-200" /> : <Copy className="h-4 w-4" />}{copied ? 'COPIED TO CLIPBOARD' : 'COPY CODE TO LINK'}
                     </button>
-                    <p className="mt-3 text-center text-[11px] leading-5 text-slate-300">WhatsApp &gt; Linked Devices &gt; Link with phone number instead.</p>
+                    <p className="mt-3 text-center text-[11px] leading-5 text-slate-300">WhatsApp &gt; Linked Devices &gt; Link with phone number instead. The code expires in 5 minutes.</p>
+                  </div>
+                )}
+
+                {isWaiting && !pairingCode && (
+                  <div className="animate-fadeIn mt-6 flex items-center justify-center gap-3 rounded-2xl border border-cyan-300/25 bg-cyan-300/5 p-4 text-[10px] font-mono tracking-[0.18em] text-cyan-200">
+                    <RefreshCw className="h-4 w-4 animate-spin" /> REQUEST #{pairRequestId ?? ''} — WAITING FOR THE BOT TO GENERATE YOUR CODE
                   </div>
                 )}
 
